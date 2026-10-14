@@ -11,7 +11,7 @@ at /snowflake/session/token — no credentials needed in environment variables.
 """
 
 import os
-import snowflake.connector
+# import snowflake.connector
 import sqlite3
 from pathlib import Path
 from dotenv import load_dotenv

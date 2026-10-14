@@ -19,6 +19,11 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 import Navbar from '../components/Navbar';
 import { getSummary, getOrders, getCities } from '../utils/api';
 
+const formatCurrency = (v) =>
+  Number(v).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+const formatCompact = (v) =>
+  Number(v).toLocaleString('en-US', { notation: 'compact', maximumFractionDigits: 1 });
+
 export default function OrdersView() {
   const [startDate, setStartDate] = useState('2022-01-01');
   const [endDate,   setEndDate]   = useState('2022-12-31');
@@ -85,15 +90,15 @@ export default function OrdersView() {
             <div className="stat-row">
               <div className="stat-box">
                 <div className="label">Total Revenue</div>
-                <div className="value">TODO</div>
+                <div className="value">{summary.total_revenue}</div>
               </div>
               <div className="stat-box">
                 <div className="label">Total Orders</div>
-                <div className="value">TODO</div>
+                <div className="value">{summary.total_orders}</div>
               </div>
               <div className="stat-box">
                 <div className="label">Unique Customers</div>
-                <div className="value">TODO</div>
+                <div className="value">{summary.unique_customers}</div>
               </div>
             </div>
 
@@ -105,10 +110,15 @@ export default function OrdersView() {
             */}
             <div className="card" style={{ marginBottom: 20 }}>
               <div className="section-title" style={{ marginBottom: 16 }}>Monthly Revenue</div>
-              {/* TODO: add your chart here */}
-              <div className="loading" style={{ height: 200 }}>
-                Implement the monthly revenue chart using recharts BarChart
-              </div>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={orders}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis dataKey="month_name" stroke="var(--text-muted)" />
+                  <YAxis stroke="var(--text-muted)" tickFormatter={formatCompact} />
+                  <Tooltip formatter={(v) => formatCurrency(v)} />
+                  <Bar dataKey="revenue" name="Revenue" fill="var(--accent)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
 
             {/*
@@ -120,10 +130,19 @@ export default function OrdersView() {
             */}
             <div className="card">
               <div className="section-title" style={{ marginBottom: 16 }}>Revenue by City</div>
-              {/* TODO: add your chart here */}
-              <div className="loading" style={{ height: 200 }}>
-                Implement the cities chart using recharts BarChart with layout="vertical"
-              </div>
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart
+                  data={cities.slice(0, 10).map(c => ({ ...c, label: `${c.city}, ${c.state}` }))}
+                  layout="vertical"
+                  margin={{ left: 20 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis type="number" stroke="var(--text-muted)" tickFormatter={formatCompact} />
+                  <YAxis type="category" dataKey="label" width={140} stroke="var(--text-muted)" />
+                  <Tooltip formatter={(v) => formatCurrency(v)} />
+                  <Bar dataKey="revenue" name="Revenue" fill="var(--blue)" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </>
         )}
