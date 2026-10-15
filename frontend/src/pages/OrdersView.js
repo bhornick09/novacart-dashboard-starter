@@ -1,28 +1,13 @@
-/**
- * OrdersView.js — Orders Overview page
- *
- * This page shows:
- *   - Stat cards: total revenue, total orders, unique customers
- *   - A bar/line chart of monthly revenue over time
- *   - A bar chart of revenue by city/state
- *   - A date range filter
- *
- * The data fetching is already wired up.
- * Your job: implement the UI — charts, stat cards, and layout.
- *
- * Useful libraries already installed:
- *   - recharts: BarChart, LineChart, XAxis, YAxis, Tooltip, ResponsiveContainer
- */
-
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import Navbar from '../components/Navbar';
 import { getSummary, getOrders, getCities } from '../utils/api';
+import { useLanguage } from '../utils/LanguageContext';
 
 const formatCurrency = (v) =>
-  Number(v).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+  Number(v || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 const formatCompact = (v) =>
-  Number(v).toLocaleString('en-US', { notation: 'compact', maximumFractionDigits: 1 });
+  Number(v || 0).toLocaleString('en-US', { notation: 'compact', maximumFractionDigits: 1 });
 
 const END_DATE = '2022-12-31';
 
@@ -38,6 +23,7 @@ function getQuickRange(preset) {
 }
 
 export default function OrdersView() {
+  const { t } = useLanguage();
   const [startDate, setStartDate] = useState('2022-01-01');
   const [endDate,   setEndDate]   = useState(END_DATE);
   const [summary,   setSummary]   = useState(null);
@@ -80,10 +66,7 @@ export default function OrdersView() {
   }
 
   function exportToCsv() {
-    // Build a multi-section CSV: summary block, then monthly orders, then cities
     const rows = [];
-
-    // Section 1 — Summary
     rows.push(['Summary']);
     rows.push(['Start Date', 'End Date', 'Total Revenue', 'Total Orders', 'Unique Customers']);
     rows.push([
@@ -95,18 +78,15 @@ export default function OrdersView() {
     ]);
     rows.push([]);
 
-    // Section 2 — Monthly orders
     rows.push(['Monthly Revenue']);
     rows.push(['Month', 'Month Name', 'Order Count', 'Revenue']);
     orders.forEach(o => rows.push([o.month, o.month_name, o.order_count, o.revenue]));
     rows.push([]);
 
-    // Section 3 — Revenue by city
     rows.push(['Revenue by City']);
     rows.push(['City', 'State', 'Order Count', 'Revenue']);
     cities.forEach(c => rows.push([c.city, c.state, c.order_count, c.revenue]));
 
-    // Serialise — quote any cell that contains a comma or newline
     const csvContent = rows
       .map(row => row.map(cell => {
         const s = String(cell ?? '');
@@ -133,20 +113,24 @@ export default function OrdersView() {
         {/* ── Filter bar ─────────────────────────────────────────────────── */}
         <div className="filter-bar">
           <select defaultValue="" onChange={e => handleQuickRange(e.target.value)}>
-            <option value="" disabled>Quick Filter</option>
-            <option value="day">Last Day</option>
-            <option value="week">Last Week</option>
-            <option value="month">Last Month</option>
-            <option value="6month">Last 6 Months</option>
-            <option value="year">Last Year</option>
+            <option value="" disabled>{t('quick_filter')}</option>
+            <option value="day">{t('last_day')}</option>
+            <option value="week">{t('last_week')}</option>
+            <option value="month">{t('last_month')}</option>
+            <option value="6month">{t('last_6months')}</option>
+            <option value="year">{t('last_year')}</option>
           </select>
-          <label>From</label>
-          <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
-          <label>To</label>
-          <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
-          <button className="btn-apply" onClick={loadData}>Apply</button>
-          <button className="btn-apply" style={{ marginLeft: 'auto' }} onClick={exportToCsv}>
-            Export Data to CSV
+          <div className="filter-group">
+            <label>{t('from')}</label>
+            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
+          </div>
+          <div className="filter-group">
+            <label>{t('to')}</label>
+            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
+          </div>
+          <button className="btn-apply" onClick={loadData}>{t('apply')}</button>
+          <button className="btn-apply btn-export" onClick={exportToCsv}>
+            {t('export_csv')}
           </button>
         </div>
 
@@ -158,73 +142,61 @@ export default function OrdersView() {
         )}
 
         {/* ── Loading state ──────────────────────────────────────────────── */}
-        {loading && <div className="loading">Loading orders data…</div>}
+        {loading && <div className="loading">{t('loading_orders')}</div>}
 
-        {/* ── TODO: Build the UI here ────────────────────────────────────── */}
-        {!loading && !error && (
+        {/* ── Dashboard UI ───────────────────────────────────────────────── */}
+        {!loading && !error && summary && (
           <>
-            {/*
-              STEP 1 — Stat cards
-              Show total_revenue, total_orders, unique_customers from summary.
-              Hint: use the .stat-row and .stat-box CSS classes.
-              Available data: summary.total_revenue, summary.total_orders, summary.unique_customers
-            */}
+            {/* Stat cards */}
             <div className="stat-row">
               <div className="stat-box">
-                <div className="label">Total Revenue</div>
+                <div className="label">{t('total_revenue')}</div>
                 <div className="value">{formatCurrency(summary.total_revenue)}</div>
               </div>
               <div className="stat-box">
-                <div className="label">Total Orders</div>
-                <div className="value">{summary.total_orders.toLocaleString()}</div>
+                <div className="label">{t('total_orders')}</div>
+                <div className="value">{(summary.total_orders || 0).toLocaleString()}</div>
               </div>
               <div className="stat-box">
-                <div className="label">Unique Customers</div>
-                <div className="value">{summary.unique_customers.toLocaleString()}</div>
+                <div className="label">{t('unique_customers')}</div>
+                <div className="value">{(summary.unique_customers || 0).toLocaleString()}</div>
               </div>
             </div>
 
-            {/*
-              STEP 2 — Monthly revenue chart
-              orders is an array of: { month, month_name, order_count, revenue }
-              Use a BarChart or LineChart from recharts.
-              Hint: XAxis dataKey="month_name", Bar dataKey="revenue"
-            */}
+            {/* Monthly revenue chart */}
             <div className="card" style={{ marginBottom: 20 }}>
-              <div className="section-title" style={{ marginBottom: 16 }}>Monthly Revenue</div>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={orders}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                  <XAxis dataKey="month_name" stroke="var(--text-muted)" />
-                  <YAxis stroke="var(--text-muted)" tickFormatter={formatCompact} />
-                  <Tooltip formatter={(v) => formatCurrency(v)} />
-                  <Bar dataKey="revenue" name="Revenue" fill="var(--accent)" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="section-title" style={{ marginBottom: 16 }}>{t('monthly_revenue')}</div>
+              <div style={{ width: '100%', height: 300 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={orders} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                    <XAxis dataKey="month_name" stroke="var(--text-muted)" tick={{ fontSize: 12 }} />
+                    <YAxis stroke="var(--text-muted)" tickFormatter={formatCompact} tick={{ fontSize: 12 }} />
+                    <Tooltip formatter={(v) => formatCurrency(v)} />
+                    <Bar dataKey="revenue" name={t('revenue')} fill="var(--accent)" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
 
-            {/*
-              STEP 3 — Revenue by city chart
-              cities is an array of: { city, state, order_count, revenue }
-              Use a horizontal BarChart (layout="vertical").
-              Show top 10 cities only.
-              Hint: .slice(0, 10) on cities array
-            */}
+            {/* Revenue by city chart */}
             <div className="card">
-              <div className="section-title" style={{ marginBottom: 16 }}>Revenue by City</div>
-              <ResponsiveContainer width="100%" height={400}>
-                <BarChart
-                  data={cities.slice(0, 10).map(c => ({ ...c, label: `${c.city}, ${c.state}` }))}
-                  layout="vertical"
-                  margin={{ left: 20 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                  <XAxis type="number" stroke="var(--text-muted)" tickFormatter={formatCompact} />
-                  <YAxis type="category" dataKey="label" width={140} stroke="var(--text-muted)" />
-                  <Tooltip formatter={(v) => formatCurrency(v)} />
-                  <Bar dataKey="revenue" name="Revenue" fill="var(--accent)" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="section-title" style={{ marginBottom: 16 }}>{t('revenue_by_city')}</div>
+              <div style={{ width: '100%', height: 400 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={cities.slice(0, 10).map(c => ({ ...c, label: `${c.city}, ${c.state}` }))}
+                    layout="vertical"
+                    margin={{ top: 10, right: 15, left: 10, bottom: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                    <XAxis type="number" stroke="var(--text-muted)" tickFormatter={formatCompact} tick={{ fontSize: 12 }} />
+                    <YAxis type="category" dataKey="label" width={110} stroke="var(--text-muted)" tick={{ fontSize: 11 }} />
+                    <Tooltip formatter={(v) => formatCurrency(v)} />
+                    <Bar dataKey="revenue" name={t('revenue')} fill="var(--accent)" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </>
         )}

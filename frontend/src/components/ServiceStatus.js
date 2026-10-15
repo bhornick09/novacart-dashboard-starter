@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { getHealth } from '../utils/api';
+import { useLanguage } from '../utils/LanguageContext';
 
 export default function ServiceStatus() {
+  const { t } = useLanguage();
   const [status, setStatus] = useState('checking');
   const [detail, setDetail] = useState('');
 
@@ -23,7 +25,14 @@ export default function ServiceStatus() {
   }, []);
 
   const colors = { healthy: '#00897B', degraded: '#F9A825', error: '#C62828', checking: '#90A4AE' };
-  const labels = { healthy: 'Service healthy', degraded: 'Degraded', error: 'Offline', checking: 'Checking…' };
+  const getLabel = () => {
+    switch (status) {
+      case 'healthy':  return t('status_healthy');
+      case 'degraded': return t('status_degraded');
+      case 'error':    return t('status_offline');
+      default:         return t('status_checking');
+    }
+  };
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }} title={detail}>
@@ -33,7 +42,7 @@ export default function ServiceStatus() {
         boxShadow: status === 'healthy' ? `0 0 6px ${colors[status]}` : 'none',
         display: 'inline-block',
       }} />
-      <span style={{ color: colors[status], fontWeight: 500 }}>{labels[status]}</span>
+      <span style={{ color: colors[status], fontWeight: 600 }}>{getLabel()}</span>
     </div>
   );
 }

@@ -68,7 +68,7 @@ if CLIENT_VALIDATION == "Dev":
 async def startup():
     print("\nStarting NovaCart Dashboard API")
     print(f"Port:            {PORT}")
-    print(f"Data backend:    {os.getenv('DATA_BACKEND', 'sqlite')}")
+    print(f"Data backend:    {DATA_BACKEND}")
     print(f"Validation mode: {CLIENT_VALIDATION}")
     print(f"Docs:            http://localhost:{PORT}/docs\n")
 
@@ -95,7 +95,7 @@ def health():
     return {
         "status":   "healthy",
         "uptime_s": uptime,
-        "backend":  os.getenv("DATA_BACKEND", "sqlite"),
+        "backend":  DATA_BACKEND,
         "database": {"status": "connected"},
     }
 
@@ -116,7 +116,7 @@ def authorize(request: Request):
     if CLIENT_VALIDATION == "Dev":
         return {"user": "dev_user", "status": "authorized"}
 
-    username = request.headers.get("sf-context-current-user")
+    username = request.headers.get("sf-context-current-user") or os.getenv("SNOWFLAKE_USERNAME")
     if not username:
         raise HTTPException(status_code=422, detail="Missing Sf-Context-Current-User header")
 
@@ -355,6 +355,53 @@ def get_cities(start: str = "2022-01-01", end: str = "2022-12-31"):
             "state":       row["state"],
             "order_count": row["order_count"],
             "revenue":     round(float(row["revenue"] or 0), 2),
+        }
+        for row in results
+    ]
+
+
+@app.get("/franchise/live-orders", tags=["Franchise"])
+def get_live_orders(limit: int = 20):
+    """
+    Returns the newest orders stream.
+    Used to power the live orders feed view.
+    """
+    limit = max(1, min(limit, 100))
+    conn = get_connection()
+
+    results = execute_query(conn, f"""
+        SELECT
+            f.order_id     AS order_id,
+            f.order_date   AS order_date,
+            f.amount       AS amount,
+            f.currency     AS currency,
+            f.status       AS status,
+            f.quantity     AS quantity,
+            c.name         AS customer_name,
+            c.addr_city    AS customer_city,
+            c.addr_state   AS customer_state,
+            p.name         AS product_name,
+            p.category     AS product_category
+        FROM fact_orders f
+        LEFT JOIN dim_customer c ON f.customer_id = c.customer_id AND c.is_current = 1
+        LEFT JOIN dim_product p ON f.product_id = p.product_id
+        ORDER BY f.order_date DESC, f.order_id DESC
+        LIMIT {limit}
+    """)
+
+    return [
+        {
+            "order_id":         row["order_id"],
+            "order_date":       str(row["order_date"]),
+            "amount":           round(float(row["amount"] or 0), 2),
+            "currency":         row.get("currency") or "USD",
+            "status":           row["status"],
+            "quantity":         int(row["quantity"] or 1),
+            "customer_name":    row["customer_name"] or "Unknown Customer",
+            "customer_city":    row["customer_city"] or "N/A",
+            "customer_state":   row["customer_state"] or "N/A",
+            "product_name":     row["product_name"] or "Unknown Product",
+            "product_category": row["product_category"] or "General",
         }
         for row in results
     ]

@@ -1,17 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTheme } from '../utils/ThemeContext';
-
-const WELCOME = {
-  role: 'assistant',
-  text: 'Hi! I\'m the NovaCart AI assistant. Ask me anything about your orders, products, or customers.',
-};
+import { useLanguage } from '../utils/LanguageContext';
 
 export default function AiChat() {
   const { dark } = useTheme();
+  const { t } = useLanguage();
   const [open,    setOpen]    = useState(false);
   const [input,   setInput]   = useState('');
-  const [messages, setMessages] = useState([WELCOME]);
+  const [messages, setMessages] = useState([]);
   const bottomRef = useRef(null);
+
+  // Initialize or update welcome message
+  useEffect(() => {
+    setMessages([
+      { role: 'assistant', text: t('ai_welcome') }
+    ]);
+  }, [t]);
 
   // Scroll to latest message whenever the list changes
   useEffect(() => {
@@ -23,7 +27,6 @@ export default function AiChat() {
     if (!text) return;
     setMessages(prev => [...prev, { role: 'user', text }]);
     setInput('');
-    // Placeholder — AI logic not yet implemented
   }
 
   function handleKeyDown(e) {
@@ -48,13 +51,14 @@ export default function AiChat() {
       <button
         onClick={() => setOpen(o => !o)}
         title={open ? 'Close AI Assistant' : 'Open AI Assistant'}
+        className="ai-chat-toggle"
         style={{
           position: 'fixed',
-          bottom: 28,
-          right: 28,
+          bottom: 24,
+          right: 24,
           zIndex: 1000,
-          width: 52,
-          height: 52,
+          width: 50,
+          height: 50,
           borderRadius: '50%',
           background: accent,
           border: 'none',
@@ -75,21 +79,24 @@ export default function AiChat() {
 
       {/* ── Chat window ────────────────────────────────────────────────────── */}
       {open && (
-        <div style={{
-          position: 'fixed',
-          bottom: 92,
-          right: 28,
-          zIndex: 999,
-          width: 360,
-          maxHeight: 520,
-          borderRadius: 12,
-          background: bg,
-          border: `1px solid ${border}`,
-          boxShadow: '0 8px 32px rgba(0,0,0,0.22)',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-        }}>
+        <div
+          className="ai-chat-window"
+          style={{
+            position: 'fixed',
+            bottom: 84,
+            right: 24,
+            zIndex: 999,
+            width: 'min(360px, calc(100vw - 32px))',
+            maxHeight: 500,
+            borderRadius: 12,
+            background: bg,
+            border: `1px solid ${border}`,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.22)',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+          }}
+        >
 
           {/* Header */}
           <div style={{
@@ -102,9 +109,9 @@ export default function AiChat() {
             <span style={{ fontSize: 18 }}>✦</span>
             <div>
               <div style={{ color: '#fff', fontWeight: 700, fontSize: 14, lineHeight: 1.2 }}>
-                NovaCart AI
+                {t('ai_title')}
               </div>
-              <div style={{ color: '#C8F5F5', fontSize: 11 }}>AI assistant — coming soon</div>
+              <div style={{ color: '#C8F5F5', fontSize: 11 }}>{t('ai_subtitle')}</div>
             </div>
           </div>
 
@@ -116,6 +123,7 @@ export default function AiChat() {
             display: 'flex',
             flexDirection: 'column',
             gap: 10,
+            maxHeight: 320,
           }}>
             {messages.map((msg, i) => {
               const isUser = msg.role === 'user';
@@ -125,7 +133,7 @@ export default function AiChat() {
                   justifyContent: isUser ? 'flex-end' : 'flex-start',
                 }}>
                   <div style={{
-                    maxWidth: '82%',
+                    maxWidth: '85%',
                     padding: '8px 12px',
                     borderRadius: isUser ? '12px 12px 2px 12px' : '12px 12px 12px 2px',
                     background: isUser ? accent : bgInput,
@@ -133,6 +141,7 @@ export default function AiChat() {
                     fontSize: 13,
                     lineHeight: 1.5,
                     border: isUser ? 'none' : `1px solid ${border}`,
+                    wordBreak: 'break-word',
                   }}>
                     {msg.text}
                   </div>
@@ -155,7 +164,7 @@ export default function AiChat() {
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Message NovaCart AI…"
+              placeholder={t('ai_placeholder')}
               style={{
                 flex: 1,
                 resize: 'none',
@@ -196,7 +205,7 @@ export default function AiChat() {
             textAlign: 'center',
             background: bg,
           }}>
-            AI responses not yet active
+            {t('ai_notice')}
           </div>
 
         </div>
