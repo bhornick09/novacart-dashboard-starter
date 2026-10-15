@@ -24,9 +24,22 @@ const formatCurrency = (v) =>
 const formatCompact = (v) =>
   Number(v).toLocaleString('en-US', { notation: 'compact', maximumFractionDigits: 1 });
 
+const END_DATE = '2022-12-31';
+
+function getQuickRange(preset) {
+  const end = new Date(END_DATE);
+  let start = new Date(END_DATE);
+  if (preset === 'day')    start.setDate(end.getDate() - 1);
+  if (preset === 'week')   start.setDate(end.getDate() - 7);
+  if (preset === 'month')  start.setMonth(end.getMonth() - 1);
+  if (preset === '6month') start.setMonth(end.getMonth() - 6);
+  if (preset === 'year')   start.setFullYear(end.getFullYear() - 1);
+  return start.toISOString().slice(0, 10);
+}
+
 export default function OrdersView() {
   const [startDate, setStartDate] = useState('2022-01-01');
-  const [endDate,   setEndDate]   = useState('2022-12-31');
+  const [endDate,   setEndDate]   = useState(END_DATE);
   const [summary,   setSummary]   = useState(null);
   const [orders,    setOrders]    = useState([]);
   const [cities,    setCities]    = useState([]);
@@ -35,14 +48,22 @@ export default function OrdersView() {
 
   useEffect(() => { loadData(); }, []);
 
-  async function loadData() {
+  function handleQuickRange(preset) {
+    if (!preset) return;
+    const start = getQuickRange(preset);
+    setStartDate(start);
+    setEndDate(END_DATE);
+    loadDataWith(start, END_DATE);
+  }
+
+  async function loadDataWith(start, end) {
     setLoading(true);
     setError(null);
     try {
       const [s, o, c] = await Promise.all([
-        getSummary(),
-        getOrders(startDate, endDate),
-        getCities(startDate, endDate),
+        getSummary(start, end),
+        getOrders(start, end),
+        getCities(start, end),
       ]);
       setSummary(s);
       setOrders(o);
@@ -54,6 +75,56 @@ export default function OrdersView() {
     }
   }
 
+  async function loadData() {
+    return loadDataWith(startDate, endDate);
+  }
+
+  function exportToCsv() {
+    // Build a multi-section CSV: summary block, then monthly orders, then cities
+    const rows = [];
+
+    // Section 1 — Summary
+    rows.push(['Summary']);
+    rows.push(['Start Date', 'End Date', 'Total Revenue', 'Total Orders', 'Unique Customers']);
+    rows.push([
+      startDate,
+      endDate,
+      summary?.total_revenue ?? '',
+      summary?.total_orders ?? '',
+      summary?.unique_customers ?? '',
+    ]);
+    rows.push([]);
+
+    // Section 2 — Monthly orders
+    rows.push(['Monthly Revenue']);
+    rows.push(['Month', 'Month Name', 'Order Count', 'Revenue']);
+    orders.forEach(o => rows.push([o.month, o.month_name, o.order_count, o.revenue]));
+    rows.push([]);
+
+    // Section 3 — Revenue by city
+    rows.push(['Revenue by City']);
+    rows.push(['City', 'State', 'Order Count', 'Revenue']);
+    cities.forEach(c => rows.push([c.city, c.state, c.order_count, c.revenue]));
+
+    // Serialise — quote any cell that contains a comma or newline
+    const csvContent = rows
+      .map(row => row.map(cell => {
+        const s = String(cell ?? '');
+        return s.includes(',') || s.includes('"') || s.includes('\n')
+          ? `"${s.replace(/"/g, '""')}"`
+          : s;
+      }).join(','))
+      .join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href     = url;
+    link.download = `orders_${startDate}_to_${endDate}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
       <Navbar />
@@ -61,11 +132,22 @@ export default function OrdersView() {
 
         {/* ── Filter bar ─────────────────────────────────────────────────── */}
         <div className="filter-bar">
+          <select defaultValue="" onChange={e => handleQuickRange(e.target.value)}>
+            <option value="" disabled>Quick Filter</option>
+            <option value="day">Last Day</option>
+            <option value="week">Last Week</option>
+            <option value="month">Last Month</option>
+            <option value="6month">Last 6 Months</option>
+            <option value="year">Last Year</option>
+          </select>
           <label>From</label>
           <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
           <label>To</label>
           <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
           <button className="btn-apply" onClick={loadData}>Apply</button>
+          <button className="btn-apply" style={{ marginLeft: 'auto' }} onClick={exportToCsv}>
+            Export Data to CSV
+          </button>
         </div>
 
         {/* ── Error state ────────────────────────────────────────────────── */}
@@ -90,15 +172,15 @@ export default function OrdersView() {
             <div className="stat-row">
               <div className="stat-box">
                 <div className="label">Total Revenue</div>
-                <div className="value">{summary.total_revenue}</div>
+                <div className="value">{formatCurrency(summary.total_revenue)}</div>
               </div>
               <div className="stat-box">
                 <div className="label">Total Orders</div>
-                <div className="value">{summary.total_orders}</div>
+                <div className="value">{summary.total_orders.toLocaleString()}</div>
               </div>
               <div className="stat-box">
                 <div className="label">Unique Customers</div>
-                <div className="value">{summary.unique_customers}</div>
+                <div className="value">{summary.unique_customers.toLocaleString()}</div>
               </div>
             </div>
 
@@ -140,7 +222,7 @@ export default function OrdersView() {
                   <XAxis type="number" stroke="var(--text-muted)" tickFormatter={formatCompact} />
                   <YAxis type="category" dataKey="label" width={140} stroke="var(--text-muted)" />
                   <Tooltip formatter={(v) => formatCurrency(v)} />
-                  <Bar dataKey="revenue" name="Revenue" fill="var(--blue)" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="revenue" name="Revenue" fill="var(--accent)" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
