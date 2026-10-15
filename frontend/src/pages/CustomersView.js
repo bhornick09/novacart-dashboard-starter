@@ -1,18 +1,7 @@
-/**
- * CustomersView.js — Customer List page
- *
- * This page shows:
- *   - A sortable table of top 20 customers by revenue
- *   - Columns: Name | City | State | Orders | Total Spent
- *   - A date range filter
- *
- * The data fetching is already wired up.
- * Your job: implement the UI and the sorting logic.
- */
-
 import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import { getCustomers } from '../utils/api';
+import { useLanguage } from '../utils/LanguageContext';
 
 function formatCurrency(value) {
   if (!value) return '$0';
@@ -33,6 +22,7 @@ function getQuickRange(preset) {
 }
 
 export default function CustomersView() {
+  const { t } = useLanguage();
   const [startDate,  setStartDate]  = useState('2022-01-01');
   const [endDate,    setEndDate]    = useState(END_DATE);
   const [customers,  setCustomers]  = useState([]);
@@ -70,7 +60,6 @@ export default function CustomersView() {
 
   function exportToCsv() {
     const rows = [];
-
     rows.push(['Customers']);
     rows.push(['Start Date', 'End Date']);
     rows.push([startDate, endDate]);
@@ -97,7 +86,6 @@ export default function CustomersView() {
     URL.revokeObjectURL(url);
   }
 
-  // Sort handler — toggles direction if same column, resets to desc if new column
   function handleSort(column) {
     if (sortBy === column) {
       setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -107,7 +95,6 @@ export default function CustomersView() {
     }
   }
 
-  // Apply sort to customers array
   const sorted = [...customers].sort((a, b) => {
     const va = a[sortBy], vb = b[sortBy];
     if (typeof va === 'number') return sortDir === 'asc' ? va - vb : vb - va;
@@ -116,7 +103,6 @@ export default function CustomersView() {
       : String(vb).localeCompare(String(va));
   });
 
-  // Sort indicator helper
   const sortIcon = (col) => sortBy === col ? (sortDir === 'asc' ? ' ↑' : ' ↓') : '';
 
   return (
@@ -126,23 +112,27 @@ export default function CustomersView() {
 
         <div className="filter-bar">
           <select defaultValue="" onChange={e => handleQuickRange(e.target.value)}>
-            <option value="" disabled>Quick Filter</option>
-            <option value="day">Last Day</option>
-            <option value="week">Last Week</option>
-            <option value="month">Last Month</option>
-            <option value="6month">Last 6 Months</option>
-            <option value="year">Last Year</option>
+            <option value="" disabled>{t('quick_filter')}</option>
+            <option value="day">{t('last_day')}</option>
+            <option value="week">{t('last_week')}</option>
+            <option value="month">{t('last_month')}</option>
+            <option value="6month">{t('last_6months')}</option>
+            <option value="year">{t('last_year')}</option>
           </select>
-          <label>From</label>
-          <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
-          <label>To</label>
-          <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
-          <button className="btn-apply" onClick={loadData}>Apply</button>
-          <button className="btn-apply" style={{ marginLeft: 'auto' }} onClick={exportToCsv}>
-            Export Data to CSV
+          <div className="filter-group">
+            <label>{t('from')}</label>
+            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
+          </div>
+          <div className="filter-group">
+            <label>{t('to')}</label>
+            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
+          </div>
+          <button className="btn-apply" onClick={loadData}>{t('apply')}</button>
+          <button className="btn-apply btn-export" onClick={exportToCsv}>
+            {t('export_csv')}
           </button>
           <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-            {customers.length} customers
+            {t('customer_count', { count: customers.length })}
           </span>
         </div>
 
@@ -152,75 +142,64 @@ export default function CustomersView() {
           </div>
         )}
 
-        {loading && <div className="loading">Loading customers…</div>}
+        {loading && <div className="loading">{t('loading_customers')}</div>}
 
         {!loading && !error && (
-          <div className="card">
-            <div className="section-title" style={{ marginBottom: 16 }}>
-              Top Customers by Revenue
+          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
+              <div className="section-title">
+                {t('top_customers_title')}
+              </div>
             </div>
 
-            {/*
-              STEP 1 — Sortable table
-              sorted is: [{ customer_id, name, city, state, total_orders, total_spent }]
-
-              Build a table with these columns:
-                Name | City | State | Orders | Total Spent
-
-              Each column header should be clickable and call handleSort(columnName).
-              Use sortIcon(columnName) to show ↑ or ↓ on the active sort column.
-
-              Hint: use a standard HTML <table> with <thead> and <tbody>.
-              Style alternating rows with different background colors.
-              Format total_spent with formatCurrency().
-            */}
-
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-              <thead>
-                <tr style={{ borderBottom: '2px solid var(--border)' }}>
-                  {[
-                    { key: 'name',         label: 'Name' },
-                    { key: 'city',         label: 'City' },
-                    { key: 'state',        label: 'State' },
-                    { key: 'total_orders', label: 'Orders' },
-                    { key: 'total_spent',  label: 'Total Spent' },
-                  ].map(({ key, label }) => (
-                    <th
-                      key={key}
-                      onClick={() => handleSort(key)}
+            <div className="table-container">
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 540 }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid var(--border)', background: 'var(--bg-primary)' }}>
+                    {[
+                      { key: 'name',         label: t('col_name') },
+                      { key: 'city',         label: t('col_city') },
+                      { key: 'state',        label: t('col_state') },
+                      { key: 'total_orders', label: t('col_orders') },
+                      { key: 'total_spent',  label: t('col_total_spent') },
+                    ].map(({ key, label }) => (
+                      <th
+                        key={key}
+                        onClick={() => handleSort(key)}
+                        style={{
+                          padding: '10px 14px',
+                          textAlign: key === 'total_orders' || key === 'total_spent' ? 'right' : 'left',
+                          color: sortBy === key ? 'var(--accent)' : 'var(--text-muted)',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          userSelect: 'none',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {label}{sortIcon(key)}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {sorted.map((c, i) => (
+                    <tr
+                      key={c.customer_id}
                       style={{
-                        padding: '8px 10px',
-                        textAlign: key === 'total_orders' || key === 'total_spent' ? 'right' : 'left',
-                        color: sortBy === key ? 'var(--accent)' : 'var(--text-muted)',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        userSelect: 'none',
-                        whiteSpace: 'nowrap',
+                        borderBottom: '1px solid var(--border)',
+                        background: i % 2 === 0 ? 'transparent' : 'var(--bg-primary)',
                       }}
                     >
-                      {label}{sortIcon(key)}
-                    </th>
+                      <td style={{ padding: '10px 14px', color: 'var(--text-primary)', fontWeight: 600 }}>{c.name}</td>
+                      <td style={{ padding: '10px 14px', color: 'var(--text-secondary)' }}>{c.city}</td>
+                      <td style={{ padding: '10px 14px', color: 'var(--text-secondary)' }}>{c.state}</td>
+                      <td style={{ padding: '10px 14px', textAlign: 'right', color: 'var(--text-primary)' }}>{(c.total_orders || 0).toLocaleString()}</td>
+                      <td style={{ padding: '10px 14px', textAlign: 'right', color: 'var(--text-primary)', fontWeight: 700 }}>{formatCurrency(c.total_spent)}</td>
+                    </tr>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {sorted.map((c, i) => (
-                  <tr
-                    key={c.customer_id}
-                    style={{
-                      borderBottom: '1px solid var(--border)',
-                      background: i % 2 === 0 ? 'transparent' : 'var(--bg-primary)',
-                    }}
-                  >
-                    <td style={{ padding: '9px 10px', color: 'var(--text-primary)', fontWeight: 500 }}>{c.name}</td>
-                    <td style={{ padding: '9px 10px', color: 'var(--text-secondary)' }}>{c.city}</td>
-                    <td style={{ padding: '9px 10px', color: 'var(--text-secondary)' }}>{c.state}</td>
-                    <td style={{ padding: '9px 10px', textAlign: 'right', color: 'var(--text-primary)' }}>{c.total_orders.toLocaleString()}</td>
-                    <td style={{ padding: '9px 10px', textAlign: 'right', color: 'var(--text-primary)', fontWeight: 600 }}>{formatCurrency(c.total_spent)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                </tbody>
+              </table>
+            </div>
 
           </div>
         )}

@@ -1,26 +1,14 @@
-/**
- * ProductsView.js — Product Performance page
- *
- * This page shows:
- *   - A bar chart of top 10 products by revenue
- *   - A table with product name, category, units sold, and revenue
- *   - A date range filter
- *
- * The data fetching is already wired up.
- * Your job: implement the UI.
- */
-
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import Navbar from '../components/Navbar';
 import { getProducts } from '../utils/api';
+import { useLanguage } from '../utils/LanguageContext';
 
-// Format currency helper
 function formatCurrency(value) {
   if (!value) return '$0';
   if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
   if (value >= 1000)    return `$${(value / 1000).toFixed(0)}K`;
-  return `$${value.toFixed(2)}`;
+  return `$${Number(value).toFixed(2)}`;
 }
 
 const END_DATE = '2022-12-31';
@@ -37,6 +25,7 @@ function getQuickRange(preset) {
 }
 
 export default function ProductsView() {
+  const { t } = useLanguage();
   const [startDate, setStartDate] = useState('2022-01-01');
   const [endDate,   setEndDate]   = useState(END_DATE);
   const [products,  setProducts]  = useState([]);
@@ -93,7 +82,6 @@ export default function ProductsView() {
 
   function exportToCsv() {
     const rows = [];
-
     rows.push(['Products']);
     rows.push(['Start Date', 'End Date']);
     rows.push([startDate, endDate]);
@@ -127,20 +115,24 @@ export default function ProductsView() {
 
         <div className="filter-bar">
           <select defaultValue="" onChange={e => handleQuickRange(e.target.value)}>
-            <option value="" disabled>Quick Filter</option>
-            <option value="day">Last Day</option>
-            <option value="week">Last Week</option>
-            <option value="month">Last Month</option>
-            <option value="6month">Last 6 Months</option>
-            <option value="year">Last Year</option>
+            <option value="" disabled>{t('quick_filter')}</option>
+            <option value="day">{t('last_day')}</option>
+            <option value="week">{t('last_week')}</option>
+            <option value="month">{t('last_month')}</option>
+            <option value="6month">{t('last_6months')}</option>
+            <option value="year">{t('last_year')}</option>
           </select>
-          <label>From</label>
-          <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
-          <label>To</label>
-          <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
-          <button className="btn-apply" onClick={loadData}>Apply</button>
-          <button className="btn-apply" style={{ marginLeft: 'auto' }} onClick={exportToCsv}>
-            Export Data to CSV
+          <div className="filter-group">
+            <label>{t('from')}</label>
+            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
+          </div>
+          <div className="filter-group">
+            <label>{t('to')}</label>
+            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
+          </div>
+          <button className="btn-apply" onClick={loadData}>{t('apply')}</button>
+          <button className="btn-apply btn-export" onClick={exportToCsv}>
+            {t('export_csv')}
           </button>
         </div>
 
@@ -150,74 +142,74 @@ export default function ProductsView() {
           </div>
         )}
 
-        {loading && <div className="loading">Loading products data…</div>}
+        {loading && <div className="loading">{t('loading_products')}</div>}
 
         {!loading && !error && (
           <div className="grid-2">
-
-            {/*
-              STEP 1 — Top products bar chart
-              products is: [{ product_id, name, category, units_sold, revenue }]
-              Use a horizontal BarChart (layout="vertical").
-              XAxis type="number", YAxis type="category" dataKey="name"
-              Hint: truncate long product names to 20 chars
-            */}
+            {/* Top products bar chart */}
             <div className="card">
-              <div className="section-title" style={{ marginBottom: 16 }}>Top 10 Products by Revenue</div>
-              <ResponsiveContainer width="100%" height={340}>
-                <BarChart
-                  data={products.map(p => ({ ...p, shortName: p.name.length > 20 ? p.name.slice(0, 20) + '…' : p.name }))}
-                  layout="vertical"
-                  margin={{ left: 10, right: 16 }}
-                >
-                  <XAxis type="number" stroke="var(--text-muted)" tickFormatter={formatCurrency} />
-                  <YAxis type="category" dataKey="shortName" width={150} stroke="var(--text-muted)" tick={{ fontSize: 12 }} />
-                  <Tooltip formatter={(v) => formatCurrency(v)} />
-                  <Bar dataKey="revenue" name="Revenue" fill="var(--accent)" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="section-title" style={{ marginBottom: 16 }}>{t('top_products_title')}</div>
+              <div style={{ width: '100%', height: 340 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={products.map(p => ({ ...p, shortName: p.name.length > 18 ? p.name.slice(0, 18) + '…' : p.name }))}
+                    layout="vertical"
+                    margin={{ left: 5, right: 15, top: 10, bottom: 0 }}
+                  >
+                    <XAxis type="number" stroke="var(--text-muted)" tickFormatter={formatCurrency} tick={{ fontSize: 11 }} />
+                    <YAxis type="category" dataKey="shortName" width={130} stroke="var(--text-muted)" tick={{ fontSize: 11 }} />
+                    <Tooltip formatter={(v) => formatCurrency(v)} />
+                    <Bar dataKey="revenue" name={t('col_revenue')} fill="var(--accent)" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
 
-            <div className="card">
-              <div className="section-title" style={{ marginBottom: 16 }}>Product Details</div>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                <thead>
-                  <tr style={{ borderBottom: '2px solid var(--border)' }}>
-                    {[
-                      { key: 'name',       label: 'Name' },
-                      { key: 'category',   label: 'Category' },
-                      { key: 'units_sold', label: 'Units Sold' },
-                      { key: 'revenue',    label: 'Revenue' },
-                    ].map(({ key, label }) => (
-                      <th
-                        key={key}
-                        onClick={() => handleSort(key)}
-                        style={{
-                          padding: '8px 10px',
-                          textAlign: key === 'units_sold' || key === 'revenue' ? 'right' : 'left',
-                          color: sortBy === key ? 'var(--accent)' : 'var(--text-muted)',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          userSelect: 'none',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {label}{sortIcon(key)}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {sorted.map((p, i) => (
-                    <tr key={p.product_id} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? 'transparent' : 'var(--bg-primary)' }}>
-                      <td style={{ padding: '8px 10px', color: 'var(--text-primary)' }}>{p.name}</td>
-                      <td style={{ padding: '8px 10px', color: 'var(--text-secondary)' }}>{p.category}</td>
-                      <td style={{ padding: '8px 10px', textAlign: 'right', color: 'var(--text-primary)' }}>{p.units_sold.toLocaleString()}</td>
-                      <td style={{ padding: '8px 10px', textAlign: 'right', color: 'var(--text-primary)', fontWeight: 600 }}>{formatCurrency(p.revenue)}</td>
+            {/* Product details table */}
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
+                <div className="section-title">{t('product_details')}</div>
+              </div>
+              <div className="table-container">
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 460 }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid var(--border)', background: 'var(--bg-primary)' }}>
+                      {[
+                        { key: 'name',       label: t('col_name') },
+                        { key: 'category',   label: t('col_category') },
+                        { key: 'units_sold', label: t('col_units_sold') },
+                        { key: 'revenue',    label: t('col_revenue') },
+                      ].map(({ key, label }) => (
+                        <th
+                          key={key}
+                          onClick={() => handleSort(key)}
+                          style={{
+                            padding: '10px 12px',
+                            textAlign: key === 'units_sold' || key === 'revenue' ? 'right' : 'left',
+                            color: sortBy === key ? 'var(--accent)' : 'var(--text-muted)',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            userSelect: 'none',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {label}{sortIcon(key)}
+                        </th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {sorted.map((p, i) => (
+                      <tr key={p.product_id} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? 'transparent' : 'var(--bg-primary)' }}>
+                        <td style={{ padding: '10px 12px', color: 'var(--text-primary)', fontWeight: 500 }}>{p.name}</td>
+                        <td style={{ padding: '10px 12px', color: 'var(--text-secondary)' }}>{p.category}</td>
+                        <td style={{ padding: '10px 12px', textAlign: 'right', color: 'var(--text-primary)' }}>{(p.units_sold || 0).toLocaleString()}</td>
+                        <td style={{ padding: '10px 12px', textAlign: 'right', color: 'var(--text-primary)', fontWeight: 700 }}>{formatCurrency(p.revenue)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
           </div>

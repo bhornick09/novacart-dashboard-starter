@@ -1,10 +1,12 @@
 import React from 'react';
 import { useTheme } from '../utils/ThemeContext';
 import { useAuth } from '../utils/AuthContext';
+import { useLanguage } from '../utils/LanguageContext';
 
 export default function LoginScreen() {
   const { dark } = useTheme();
   const { login, authLoading, authError } = useAuth();
+  const { t, lang, setLang, languages } = useLanguage();
 
   const bg       = dark ? '#0F1923' : '#F5F7FA';
   const cardBg   = dark ? '#172130' : '#FFFFFF';
@@ -25,7 +27,7 @@ export default function LoginScreen() {
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: 24,
+      padding: '16px',
     }}>
 
       {/* Card */}
@@ -42,7 +44,7 @@ export default function LoginScreen() {
         {/* Card header — matches Navbar brand bar */}
         <div style={{
           background: navBg,
-          padding: '24px 32px 20px',
+          padding: '24px 20px 20px',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -50,26 +52,49 @@ export default function LoginScreen() {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: 28 }}>🛒</span>
-            <span style={{ color: '#fff', fontWeight: 800, fontSize: 24, letterSpacing: '-0.3px' }}>
+            <span style={{ color: '#fff', fontWeight: 800, fontSize: 22, letterSpacing: '-0.3px' }}>
               NovaCart
             </span>
           </div>
-          <span style={{ color: '#C8F5F5', fontSize: 13 }}>Account Dashboard</span>
+          <span style={{ color: '#C8F5F5', fontSize: 13 }}>{t('account_dashboard')}</span>
         </div>
 
         {/* Card body */}
-        <div style={{ padding: '32px 32px 28px' }}>
-          <h2 style={{
-            color: textPri,
-            fontSize: 20,
-            fontWeight: 700,
-            marginBottom: 6,
-          }}>
-            Sign in
-          </h2>
-          <p style={{ color: textMut, fontSize: 13, marginBottom: 28, lineHeight: 1.6 }}>
-            Access is managed via Snowflake OAuth. Click <strong style={{ color: textPri }}>Continue</strong> to
-            authenticate with your Snowflake account.
+        <div style={{ padding: '24px 20px 24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <h2 style={{
+              color: textPri,
+              fontSize: 20,
+              fontWeight: 700,
+              margin: 0,
+            }}>
+              {t('sign_in')}
+            </h2>
+
+            {/* Language Quick Switcher */}
+            <select
+              value={lang}
+              onChange={e => setLang(e.target.value)}
+              style={{
+                background: dark ? '#0F1923' : '#F5F7FA',
+                color: textPri,
+                border: `1px solid ${border}`,
+                borderRadius: 6,
+                padding: '3px 8px',
+                fontSize: 12,
+                cursor: 'pointer',
+              }}
+            >
+              {languages.map(l => (
+                <option key={l.code} value={l.code}>
+                  {l.flag} {l.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <p style={{ color: textMut, fontSize: 13, marginBottom: 24, lineHeight: 1.6 }}>
+            {t('auth_desc')}
           </p>
 
           {/* Error banner */}
@@ -97,7 +122,7 @@ export default function LoginScreen() {
               color: authLoading ? textMut : '#fff',
               border: 'none',
               borderRadius: 8,
-              padding: '11px 0',
+              padding: '12px 0',
               fontSize: 15,
               fontWeight: 700,
               cursor: authLoading ? 'not-allowed' : 'pointer',
@@ -107,10 +132,10 @@ export default function LoginScreen() {
             onMouseEnter={e => { if (!authLoading) e.currentTarget.style.opacity = '0.88'; }}
             onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}
           >
-            {authLoading ? 'Connecting…' : 'Continue with Snowflake'}
+            {authLoading ? t('authenticating') : t('continue_snowflake')}
           </button>
 
-          {/* Dev mode note */}
+          {/* Auth info note */}
           <p style={{
             marginTop: 20,
             fontSize: 11,
@@ -118,15 +143,13 @@ export default function LoginScreen() {
             textAlign: 'center',
             lineHeight: 1.6,
           }}>
-            In development mode, authentication is bypassed automatically.
-            <br />
-            Snowflake SSO will be enforced in production.
+            {t('auth_footer')}
           </p>
         </div>
       </div>
 
       {/* Footer */}
-      <p style={{ marginTop: 24, fontSize: 12, color: textMut }}>
+      <p style={{ marginTop: 20, fontSize: 12, color: textMut }}>
         © {new Date().getFullYear()} NovaCart · Internal use only
       </p>
     </div>

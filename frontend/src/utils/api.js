@@ -56,3 +56,9 @@ export async function getCities(start, end) {
   if (!res.ok) throw new Error('Failed to fetch cities');
   return res.json();
 }
+
+export async function getLiveOrders(limit = 20) {
+  const res = await fetch(`${BACKEND_URL}/franchise/live-orders?limit=${limit}`);
+  if (!res.ok) throw new Error('Failed to fetch live orders');
+  return res.json();
+}
