@@ -5,28 +5,28 @@
   --text-secondary:#455A64;
   --text-muted:   #90A4AE;
   --border:       #E0E6ED;
-  --accent:       #00897B;
+  --accent:       #1C4EF5;
   --blue:         #1565C0;
   --shadow:       0 2px 12px rgba(0,0,0,0.08);
   --radius:       10px;
 }
 
 [data-theme="dark"] {
-  --bg-primary:   #0D1B2A;
-  --bg-card:      #132337;
-  --text-primary: #E8EDF2;
-  --text-secondary:#90A4AE;
-  --text-muted:   #607D8B;
-  --border:       #1E3248;
-  --accent:       #4DB6AC;
-  --blue:         #42A5F5;
-  --shadow:       0 2px 12px rgba(0,0,0,0.3);
+  --bg-primary:   #0F1923;
+  --bg-card:      #172130;
+  --text-primary: #E8EEF4;
+  --text-secondary:#8EAABB;
+  --text-muted:   #546E7A;
+  --border:       #1E3A52;
+  --accent:       #5B80F8;
+  --blue:         #4A9EE0;
+  --shadow:       0 2px 12px rgba(0,0,0,0.4);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: "IBM Plex Sans", '-apple-system', BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: var(--bg-primary);
   color: var(--text-primary);
   transition: background 0.2s, color 0.2s;

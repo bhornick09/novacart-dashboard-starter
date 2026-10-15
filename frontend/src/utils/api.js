@@ -4,7 +4,8 @@
  * All API calls go through this file.
  * In SPCS, REACT_APP_BACKEND_URL is set to /api and calls are
  * routed through the NGINX router to the backend container.
- * Locally, calls go directly to http://localhost:8000.
+ * Locally, set REACT_APP_BACKEND_URL=http://localhost:8000 in .env,
+ * or it defaults to http://localhost:8000 automatically.
  */
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -18,10 +19,40 @@ async function apiFetch(path) {
   return res.json();
 }
 
-export async function authorize()       { return apiFetch('/authorize'); }
-export async function getHealth()       { return apiFetch('/health'); }
-export async function getSummary()      { return apiFetch('/franchise/summary'); }
-export async function getOrders(s, e)   { return apiFetch(`/franchise/orders?start=${s}&end=${e}`); }
-export async function getProducts(s, e) { return apiFetch(`/franchise/products?start=${s}&end=${e}`); }
-export async function getCustomers(s,e) { return apiFetch(`/franchise/customers?start=${s}&end=${e}`); }
-export async function getCities(s, e)   { return apiFetch(`/franchise/cities?start=${s}&end=${e}`); }
+export async function authorize() {
+  return apiFetch('/authorize');
+}
+
+export async function getHealth() {
+  return apiFetch('/health');
+}
+
+export async function getSummary(start, end) {
+  const res = await fetch(`${BACKEND_URL}/franchise/summary?start=${start}&end=${end}`);
+  if (!res.ok) throw new Error('Failed to fetch summary');
+  return res.json();
+}
+
+export async function getOrders(start, end) {
+  const res = await fetch(`${BACKEND_URL}/franchise/orders?start=${start}&end=${end}`);
+  if (!res.ok) throw new Error('Failed to fetch orders');
+  return res.json();
+}
+
+export async function getProducts(start, end) {
+  const res = await fetch(`${BACKEND_URL}/franchise/products?start=${start}&end=${end}`);
+  if (!res.ok) throw new Error('Failed to fetch products');
+  return res.json();
+}
+
+export async function getCustomers(start, end) {
+  const res = await fetch(`${BACKEND_URL}/franchise/customers?start=${start}&end=${end}`);
+  if (!res.ok) throw new Error('Failed to fetch customers');
+  return res.json();
+}
+
+export async function getCities(start, end) {
+  const res = await fetch(`${BACKEND_URL}/franchise/cities?start=${start}&end=${end}`);
+  if (!res.ok) throw new Error('Failed to fetch cities');
+  return res.json();
+}
